@@ -99,19 +99,13 @@
       (add-timeout-reset (add-timeout-checks expanded-form))
       (get forms i))))
 
-(defn form->serializable [form]
-  (if (instance? js/Error form)
-    (array (or (some-> form .-cause .-message) (.-message form))
-      (.-fileName form) (.-lineNumber form))
-    (pr-str form)))
-
 (defonce state (empty-state))
 
 (defn code->results [forms cb]
   (let [forms (mapv str->form forms)
         current-ns (atom 'cljs.user)
         eval-cb (fn [results]
-                  (cb (map form->serializable results)))
+                  (cb results))
         read-cb (fn [results]
                   (eval-forms (add-timeouts-if-necessary forms results)
                               eval-cb

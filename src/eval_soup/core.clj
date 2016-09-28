@@ -38,8 +38,7 @@
          results []
          nspace (create-ns 'clj.user)]
     (if-let [form (first forms)]
-      (let [[result current-ns] (eval-form form nspace)
-            result-str (if (instance? Exception result) [(.getMessage result)] (pr-str result))]
-        (recur (rest forms) (conj results result-str) current-ns))
+      (let [[result current-ns] (eval-form form nspace)]
+        (recur (rest forms) (conj results result) current-ns))
       results)))
 
