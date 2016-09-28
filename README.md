@@ -1,3 +1,5 @@
+[![Clojars Project](https://img.shields.io/clojars/v/eval-soup.svg)](https://clojars.org/eval-soup)
+
 ## Introduction
 
 A nice eval wrapper for Clojure and ClojureScript. It even protects you from infinite loops!
