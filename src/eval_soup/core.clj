@@ -1,6 +1,5 @@
 (ns eval-soup.core
   (:require [clojure.java.io :as io]
-            [clojure.edn :as edn]
             [clojail.core :as clojail])
   (:import [java.io File StringWriter]))
 
@@ -34,8 +33,8 @@
       (eval-form-safely (read-string form-str) nspace)
       (catch Exception e [e nspace]))))
 
-(defn code->results [forms-str]
-  (loop [forms (edn/read-string forms-str)
+(defn code->results [forms]
+  (loop [forms forms
          results []
          nspace (create-ns 'clj.user)]
     (if-let [form (first forms)]
