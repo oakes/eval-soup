@@ -7,16 +7,16 @@ A nice eval wrapper for Clojure and ClojureScript. It even protects you from inf
 Clojure example:
 
 ```clojure
-(code->results ["(+ 1 1)" "(conj [1 2 3] 4)" "(nil)" "(while true)"])
-; => [2, [1 2 3 4], #error {:message "Can't call nil"}, #error{:message "Execution timed out.”}]
+(code->results ["(def n 4)" "(conj [1 2 3] n)" "(nil)" "(while true)"])
+; => [#'clj.user/n, [1 2 3 4], #error {:message "Can't call nil"}, #error {:message "Execution timed out.”}]
 ```
 
 ClojureScript example:
 
 ```clojure
-(code->results ["(+ 1 1)" "(conj [1 2 3] 4)" "(nil)" "(while true)"]
+(code->results ["(def n 4)" "(conj [1 2 3] n)" "(nil)" "(while true)"]
   (fn [results]
-    ; => [2, [1 2 3 4], #error {:message "Can't call nil"}, #error {:message "Execution timed out."}]
+    ; => [#'cljs.user/n, [1 2 3 4], #error {:message "Can't call nil"}, #error {:message "Execution timed out."}]
     ))
 ```
 
