@@ -2,7 +2,7 @@
   :source-paths #{"src"}
   :resource-paths #{"src" "resources"}
   :dependencies '[[org.clojure/clojure "1.8.0"]
-                  [org.clojure/clojurescript "1.9.225"]
+                  [org.clojure/clojurescript "1.9.225" :scope "provided"]
                   [org.clojure/core.async "0.2.374"]
                   [clojail "1.0.6"]]
   :repositories (conj (get-env :repositories)
@@ -12,7 +12,7 @@
 
 (task-options!
   pom {:project 'eval-soup
-       :version "1.0.1-SNAPSHOT"
+       :version "1.0.1"
        :description "A nice eval wrapper for Clojure and ClojureScript"
        :url "https://github.com/oakes/eval-soup"
        :license {"Public Domain" "http://unlicense.org/UNLICENSE"}}
