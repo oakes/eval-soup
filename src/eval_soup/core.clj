@@ -1,6 +1,6 @@
 (ns eval-soup.core
   (:require [clojure.java.io :as io]
-            [clojail.core :as clojail])
+            [eval-soup.clojail :refer [thunk-timeout]])
   (:import [java.io File StringWriter]))
 
 (defmacro with-security [& body]
@@ -16,7 +16,7 @@
 
 (defn eval-form-safely [form nspace]
   (with-security
-    (clojail/thunk-timeout
+    (thunk-timeout
       (fn []
         (binding [*ns* nspace
                   *out* (StringWriter.)]
