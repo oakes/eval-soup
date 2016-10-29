@@ -117,14 +117,15 @@
                      custom-load))
          init-cb (fn [results]
                    (eval-forms (map wrap-macroexpand forms) read-cb state current-ns custom-load))]
-     (eval-forms [(list 'ns @current-ns)
+     (eval-forms ['(ns cljs.user)
                   '(def ps-last-time (atom 0))
                   '(defn ps-reset-timeout! []
                      (reset! ps-last-time (.getTime (js/Date.))))
                   '(defn ps-check-for-timeout! []
                      (when (> (- (.getTime (js/Date.)) @ps-last-time) 2000)
                        (throw (js/Error. "Execution timed out."))))
-                  '(set! *print-err-fn* (fn [_]))]
+                  '(set! *print-err-fn* (fn [_]))
+                  (list 'ns @current-ns)]
        init-cb
        state
        current-ns
