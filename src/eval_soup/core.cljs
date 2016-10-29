@@ -103,10 +103,10 @@
 
 (defn code->results
   ([forms cb]
-   (code->results forms cb nil))
-  ([forms cb custom-load]
+   (code->results forms cb {}))
+  ([forms cb {:keys [custom-load current-ns]
+              :or {current-ns (atom 'cljs.user)}}]
    (let [forms (mapv str->form forms)
-         current-ns (atom 'cljs.user)
          eval-cb (fn [results]
                    (cb results))
          read-cb (fn [results]
@@ -117,7 +117,7 @@
                      custom-load))
          init-cb (fn [results]
                    (eval-forms (map wrap-macroexpand forms) read-cb state current-ns custom-load))]
-     (eval-forms ['(ns cljs.user)
+     (eval-forms [(list 'ns @current-ns)
                   '(def ps-last-time (atom 0))
                   '(defn ps-reset-timeout! []
                      (reset! ps-last-time (.getTime (js/Date.))))
