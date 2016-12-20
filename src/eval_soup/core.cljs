@@ -105,7 +105,8 @@
   ([forms cb]
    (code->results forms cb {}))
   ([forms cb {:keys [custom-load current-ns]
-              :or {current-ns (atom 'cljs.user)}}]
+              :or {custom-load custom-load!
+                   current-ns (atom 'cljs.user)}}]
    (let [forms (mapv str->form forms)
          eval-cb (fn [results]
                    (cb results))
