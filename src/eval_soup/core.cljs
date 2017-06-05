@@ -123,7 +123,7 @@
                   '(defn ps-reset-timeout! []
                      (reset! ps-last-time (.getTime (js/Date.))))
                   '(defn ps-check-for-timeout! []
-                     (when (> (- (.getTime (js/Date.)) @ps-last-time) 2000)
+                     (when (> (- (.getTime (js/Date.)) @ps-last-time) 5000)
                        (throw (js/Error. "Execution timed out."))))
                   '(set! *print-err-fn* (fn [_]))
                   (list 'ns @current-ns)]

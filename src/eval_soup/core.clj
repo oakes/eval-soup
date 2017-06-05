@@ -25,7 +25,7 @@
            (if (and (coll? form) (= 'ns (first form)))
              (-> form second create-ns)
              *ns*)]))
-      1000)))
+      5000)))
 
 (defn eval-form [form-str nspace]
   (binding [*read-eval* false]
