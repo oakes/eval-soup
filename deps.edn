@@ -1,0 +1,6 @@
+{:paths ["src" "resources"]
+ :deps {org.clojure/clojure {:mvn/version "1.9.0"
+                             :scope "provided"}
+        org.clojure/clojurescript {:mvn/version "1.9.946"
+                                   :scope "test"}
+        org.clojure/core.async {:mvn/version "0.3.443"}}}
