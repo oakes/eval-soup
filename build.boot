@@ -1,11 +1,13 @@
 (set-env!
-  :dependencies '[[seancorfield/boot-tools-deps "0.1.4" :scope "test"]]
+  :source-paths #{"src"}
+  :resource-paths #{"src" "resources"}
+  :dependencies '[[org.clojure/clojure "1.9.0" :scope "provided"]
+                  [org.clojure/clojurescript "1.9.946" :scope "provided"]
+                  [org.clojure/core.async "0.3.443"]]
   :repositories (conj (get-env :repositories)
                   ["clojars" {:url "https://clojars.org/repo/"
                               :username (System/getenv "CLOJARS_USER")
                               :password (System/getenv "CLOJARS_PASS")}]))
-
-(require '[boot-tools-deps.core :refer [deps]])
 
 (task-options!
   pom {:project 'eval-soup
@@ -16,8 +18,8 @@
   push {:repo "clojars"})
 
 (deftask local []
-  (comp (deps) (pom) (jar) (install)))
+  (comp (pom) (jar) (install)))
 
 (deftask deploy []
-  (comp (deps) (pom) (jar) (push)))
+  (comp (pom) (jar) (push)))
 
