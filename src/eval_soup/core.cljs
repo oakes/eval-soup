@@ -70,9 +70,10 @@
         (cb (mapv #(or (:error %) (:value %))
                   @results)))))
 
-(defn str->form [s]
+(defn str->form [ns-sym s]
   (try
-    (read-string s)
+    (binding [*ns* (create-ns ns-sym)]
+      (read-string s))
     (catch js/Error _)))
 
 (defn wrap-macroexpand [form]
@@ -107,7 +108,7 @@
   ([forms cb {:keys [custom-load current-ns]
               :or {custom-load custom-load!
                    current-ns (atom 'cljs.user)}}]
-   (let [forms (mapv str->form forms)
+   (let [forms (mapv (partial str->form @current-ns) forms)
          eval-cb (fn [results]
                    (cb results))
          read-cb (fn [results]
