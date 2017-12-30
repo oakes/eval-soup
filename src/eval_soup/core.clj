@@ -3,10 +3,12 @@
             [eval-soup.clojail :refer [thunk-timeout]])
   (:import [java.io File StringWriter]))
 
+(def timeout 4000)
+
 (defmacro with-security [& body]
   `(do
      (System/setProperty "java.security.policy"
-                        (-> "java.policy" io/resource .toString))
+                        (-> "eval_soup/java.policy" io/resource .toString))
      (System/setSecurityManager
        (proxy [SecurityManager] []
          (checkExit [status#]
@@ -25,7 +27,7 @@
            (if (and (coll? form) (= 'ns (first form)))
              (-> form second create-ns)
              *ns*)]))
-      5000)))
+      timeout)))
 
 (defn eval-form [form-str nspace]
   (binding [*read-eval* false]
