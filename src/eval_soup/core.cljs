@@ -2,7 +2,7 @@
   (:require [clojure.string :as str]
             [cljs.core.async :refer [chan put! <!]]
             [cljs.js :refer [empty-state eval js-eval]]
-            [cljs.reader :refer [read-string]]
+            [cljs.tools.reader :refer [read-string]]
             [clojure.walk :refer [walk]])
   (:require-macros [cljs.core.async.macros :refer [go]])
   (:import goog.net.XhrIo))
