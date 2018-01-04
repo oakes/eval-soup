@@ -52,11 +52,11 @@
               :context :expr
               :def-emits-var true}
         channel (chan)
-        forms (atom forms)
-        results (atom [])]
-    (go (while (seq @forms)
+        *forms (atom forms)
+        *results (atom [])]
+    (go (while (seq @*forms)
           (try
-            (let [form (first @forms)
+            (let [form (first @*forms)
                   opts (assoc opts :ns @current-ns)]
               (when (list? form)
                 (when (= 'ns (first form))
@@ -65,10 +65,10 @@
                 (put! channel {:error form})
                 (eval state form opts #(put! channel %))))
             (catch js/Error e (put! channel {:error e})))
-          (swap! forms rest)
-          (swap! results conj (<! channel)))
+          (swap! *forms rest)
+          (swap! *results conj (<! channel)))
         (cb (mapv #(or (:error %) (:value %))
-                  @results)))))
+                  @*results)))))
 
 (defn str->form [ns-sym s]
   (try
