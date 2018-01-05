@@ -46,7 +46,7 @@
          (custom-load! opts (rest extensions) cb)))
      (cb {:lang :clj :source ""}))))
 
-(defn eval-forms [forms cb state current-ns custom-load]
+(defn eval-forms [forms cb *state *current-ns custom-load]
   (let [opts {:eval js-eval
               :load custom-load
               :context :expr
@@ -57,13 +57,13 @@
     (go (while (seq @*forms)
           (try
             (let [form (first @*forms)
-                  opts (assoc opts :ns @current-ns)]
+                  opts (assoc opts :ns @*current-ns)]
               (when (list? form)
                 (when (= 'ns (first form))
-                  (reset! current-ns (second form))))
+                  (reset! *current-ns (second form))))
               (if (instance? js/Error form)
                 (put! channel {:error form})
-                (eval state form opts #(put! channel %))))
+                (eval *state form opts #(put! channel %))))
             (catch js/Error e (put! channel {:error e})))
           (swap! *forms rest)
           (swap! *results conj (<! channel)))
@@ -100,25 +100,26 @@
       (add-timeout-reset (add-timeout-checks expanded-form))
       (get forms i))))
 
-(defonce state (empty-state))
+(defonce *state (empty-state))
 
 (defn code->results
   ([forms cb]
    (code->results forms cb {}))
-  ([forms cb {:keys [custom-load current-ns]
+  ([forms cb {:keys [custom-load *current-ns]
               :or {custom-load custom-load!
-                   current-ns (atom 'cljs.user)}}]
-   (let [forms (mapv (partial str->form @current-ns) forms)
+                   *current-ns (atom 'cljs.user)}
+              :as opts}]
+   (let [forms (mapv (partial str->form @*current-ns) forms)
          eval-cb (fn [results]
                    (cb results))
          read-cb (fn [results]
                    (eval-forms (add-timeouts-if-necessary forms results)
                      eval-cb
-                     state
-                     current-ns
+                     *state
+                     *current-ns
                      custom-load))
          init-cb (fn [results]
-                   (eval-forms (map wrap-macroexpand forms) read-cb state current-ns custom-load))]
+                   (eval-forms (map wrap-macroexpand forms) read-cb *state *current-ns custom-load))]
      (eval-forms ['(ns cljs.user)
                   '(def ps-last-time (atom 0))
                   '(defn ps-reset-timeout! []
@@ -127,9 +128,9 @@
                      (when (> (- (.getTime (js/Date.)) @ps-last-time) 4000)
                        (throw (js/Error. "Execution timed out."))))
                   '(set! *print-err-fn* (fn [_]))
-                  (list 'ns @current-ns)]
+                  (list 'ns @*current-ns)]
        init-cb
-       state
-       current-ns
+       *state
+       *current-ns
        custom-load))))
 
