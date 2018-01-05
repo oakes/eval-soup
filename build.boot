@@ -9,7 +9,7 @@
 
 (task-options!
   pom {:project 'eval-soup
-       :version "1.2.6-SNAPSHOT"
+       :version "1.3.0"
        :description "A nice eval wrapper for Clojure and ClojureScript"
        :url "https://github.com/oakes/eval-soup"
        :license {"Public Domain" "http://unlicense.org/UNLICENSE"}}
