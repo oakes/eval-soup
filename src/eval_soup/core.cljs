@@ -1,6 +1,6 @@
 (ns eval-soup.core
   (:require [clojure.string :as str]
-            [cljs.core.async :refer [chan put! <!]]
+            [cljs.core.async :as async]
             [cljs.js :refer [empty-state eval js-eval]]
             [cljs.tools.reader :refer [read-string]]
             [clojure.walk :refer [walk]])
@@ -46,12 +46,14 @@
          (custom-load! opts (rest extensions) cb)))
      (cb {:lang :clj :source ""}))))
 
+(def chan? (partial instance? cljs.core.async.impl.channels.ManyToManyChannel))
+
 (defn ^:private eval-forms [forms cb *state *current-ns custom-load]
   (let [opts {:eval js-eval
               :load custom-load
               :context :expr
               :def-emits-var true}
-        channel (chan)
+        channel (async/chan)
         *forms (atom forms)
         *results (atom [])]
     (go (while (seq @*forms)
@@ -62,13 +64,17 @@
                 (when (= 'ns (first form))
                   (reset! *current-ns (second form))))
               (if (instance? js/Error form)
-                (put! channel {:error form})
-                (eval *state form opts #(put! channel %))))
-            (catch js/Error e (put! channel {:error e})))
+                (async/put! channel {:error form})
+                (eval *state form opts #(async/put! channel %))))
+            (catch js/Error e (async/put! channel {:error e})))
           (swap! *forms rest)
-          (swap! *results conj (<! channel)))
-        (cb (mapv #(or (:error %) (:value %))
-                  @*results)))))
+          (let [{:keys [value] :as res} (async/<! channel)
+                res (if (chan? value)
+                      {:value (async/<! value)}
+                      res)]
+            (swap! *results conj res)))
+      (cb (mapv #(or (:error %) (:value %))
+            @*results)))))
 
 (defn ^:private str->form [ns-sym s]
   (if (string? s)
@@ -103,6 +109,19 @@
       (get forms i))))
 
 (defonce ^:private *cljs-state (empty-state))
+
+(def ^{:doc "Alias to core.async's `chan` meant for use inside a form
+  you want to evaluate. See the example in `code->results` that uses it."}
+  chan async/chan)
+
+(def ^{:doc "Alias to core.async's `put!` meant for use inside a form
+  you want to evaluate. See the example in `code->results` that uses it."}
+  put! async/put!)
+
+(def ^{:doc "Alias to `identity` meant for use inside a form you want
+  to evaluate. The purpose of this function is to give this namespace
+  parity with the Clojure JVM namespace."}
+  <!! identity)
 
 (defn code->results
   "Evaluates each form, providing the results in a callback.

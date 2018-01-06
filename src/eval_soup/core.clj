@@ -1,6 +1,7 @@
 (ns eval-soup.core
   (:require [clojure.java.io :as io]
-            [eval-soup.clojail :refer [thunk-timeout]])
+            [eval-soup.clojail :refer [thunk-timeout]]
+            [clojure.core.async :as async])
   (:import [java.io File StringWriter]))
 
 (defn wrap-security
@@ -54,6 +55,18 @@
     (binding [*read-eval* false]
       (read-string s))
     s))
+
+(def ^{:doc "Alias to core.async's `chan` meant for use inside a form
+  you want to evaluate. See the example in `code->results` that uses it."}
+  chan async/chan)
+
+(def ^{:doc "Alias to core.async's `put!` meant for use inside a form
+  you want to evaluate. See the example in `code->results` that uses it."}
+  put! async/put!)
+
+(def ^{:doc "Alias to core.async's `<!!` meant for use inside a form
+  you want to evaluate. See the example in `code->results` that uses it."}
+  <!! async/<!!)
 
 (defn code->results
   "Returns a vector of the evaluated result of each of the given forms.
