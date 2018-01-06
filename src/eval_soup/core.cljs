@@ -1,6 +1,6 @@
 (ns eval-soup.core
   (:require [clojure.string :as str]
-            [cljs.core.async :as async]
+            [cljs.core.async :refer [chan put!]]
             [cljs.js :refer [empty-state eval js-eval]]
             [cljs.tools.reader :refer [read-string]]
             [clojure.walk :refer [walk]])
@@ -59,7 +59,7 @@
               :load custom-load
               :context :expr
               :def-emits-var true}
-        channel (async/chan)
+        channel (chan)
         *forms (atom forms)
         *results (atom [])]
     (go (while (seq @*forms)
@@ -74,13 +74,13 @@
                 (when (= 'ns (first form))
                   (reset! *current-ns (second form))))
               (if (instance? js/Error form)
-                (async/put! channel {:error form})
-                (eval *state form opts #(async/put! channel %))))
-            (catch js/Error e (async/put! channel {:error e})))
+                (put! channel {:error form})
+                (eval *state form opts #(put! channel %))))
+            (catch js/Error e (put! channel {:error e})))
           (swap! *forms rest)
-          (let [{:keys [value] :as res} (async/<! channel)
+          (let [{:keys [value] :as res} (<! channel)
                 res (if (chan? value)
-                      {:value (async/<! value)}
+                      {:value (<! value)}
                       res)]
             (swap! *results conj res)))
       (cb (mapv #(or (:error %) (:value %))
@@ -111,19 +111,6 @@
       (get forms i))))
 
 (defonce ^:private *cljs-state (empty-state))
-
-(def ^{:doc "Alias to core.async's `chan` meant for use inside a form
-  you want to evaluate. See the example in `code->results` that uses it."}
-  chan async/chan)
-
-(def ^{:doc "Alias to core.async's `put!` meant for use inside a form
-  you want to evaluate. See the example in `code->results` that uses it."}
-  put! async/put!)
-
-(def ^{:doc "Alias to `identity` meant for use inside a form you want
-  to evaluate. The purpose of this function is to give this namespace
-  parity with the Clojure JVM namespace."}
-  <!! identity)
 
 (defn code->results
   "Evaluates each form, providing the results in a callback.
