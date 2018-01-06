@@ -48,6 +48,12 @@
 
 (def chan? (partial instance? cljs.core.async.impl.channels.ManyToManyChannel))
 
+(defn ^:private str->form [ns-sym s]
+  (try
+    (binding [*ns* (create-ns ns-sym)]
+      (read-string s))
+    (catch js/Error _)))
+
 (defn ^:private eval-forms [forms cb *state *current-ns custom-load]
   (let [opts {:eval js-eval
               :load custom-load
@@ -58,8 +64,12 @@
         *results (atom [])]
     (go (while (seq @*forms)
           (try
-            (let [form (first @*forms)
-                  opts (assoc opts :ns @*current-ns)]
+            (let [current-ns @*current-ns
+                  form (first @*forms)
+                  form (if (string? form)
+                         (str->form current-ns form)
+                         form)
+                  opts (assoc opts :ns current-ns)]
               (when (list? form)
                 (when (= 'ns (first form))
                   (reset! *current-ns (second form))))
@@ -75,14 +85,6 @@
             (swap! *results conj res)))
       (cb (mapv #(or (:error %) (:value %))
             @*results)))))
-
-(defn ^:private str->form [ns-sym s]
-  (if (string? s)
-    (try
-      (binding [*ns* (create-ns ns-sym)]
-        (read-string s))
-      (catch js/Error _))
-    s))
 
 (defn ^:private wrap-macroexpand [form]
   (if (coll? form)
@@ -139,8 +141,7 @@
                    timeout 4000
                    disable-timeout? false}
               :as opts}]
-   (let [forms (mapv (partial str->form @*current-ns) forms)
-         init-forms (vec
+   (let [init-forms (vec
                       (concat
                         ['(ns cljs.user)]
                         (when-not disable-timeout?

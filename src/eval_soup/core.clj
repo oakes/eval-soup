@@ -33,6 +33,10 @@
   (fn []
     (thunk-timeout thunk timeout)))
 
+(defn ^:private str->form [nspace s]
+  (binding [*read-eval* false]
+    (read-string s)))
+
 (defn ^:private eval-form [form nspace {:keys [timeout
                                                disable-timeout?
                                                disable-security?]}]
@@ -40,21 +44,18 @@
     (cond-> (fn []
               (binding [*ns* nspace
                         *out* (StringWriter.)]
-                (refer-clojure)
-                [(eval form)
-                 (if (and (coll? form) (= 'ns (first form)))
-                   (-> form second create-ns)
-                   *ns*)]))
+                (let [form (if (string? form)
+                             (str->form nspace form)
+                             form)]
+                  (refer-clojure)
+                  [(eval form)
+                   (if (and (coll? form) (= 'ns (first form)))
+                     (-> form second create-ns)
+                     *ns*)])))
             (not disable-timeout?) (wrap-timeout timeout)
             (not disable-security?) (wrap-security)
             true (apply []))
     (catch Exception e [e nspace])))
-
-(defn ^:private str->form [s]
-  (if (string? s)
-    (binding [*read-eval* false]
-      (read-string s))
-    s))
 
 (def ^{:doc "Alias to core.async's `chan` meant for use inside a form
   you want to evaluate. See the example in `code->results` that uses it."}
@@ -82,8 +83,7 @@
            :as opts}]
    (let [opts {:timeout timeout
                :disable-timeout? disable-timeout?
-               :disable-security? disable-security?}
-         forms (mapv str->form forms)]
+               :disable-security? disable-security?}]
      (loop [forms forms
             results []
             nspace (create-ns 'clj.user)]
