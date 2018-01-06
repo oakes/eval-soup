@@ -3,44 +3,79 @@
             [eval-soup.clojail :refer [thunk-timeout]])
   (:import [java.io File StringWriter]))
 
-(def timeout 4000)
+(defn wrap-security
+  "Returns a function that wraps the given function in a sandbox.
+  It uses eval_soup/java.policy to define permissions. By default,
+  it only disallows exiting via System/exit."
+  [thunk]
+  (fn []
+    (System/setProperty "java.security.policy"
+      (-> "eval_soup/java.policy" io/resource .toString))
+    (System/setSecurityManager
+      (proxy [SecurityManager] []
+        (checkExit [status#]
+          (throw (SecurityException. "Exit not allowed.")))))
+    (try (thunk)
+      (finally (System/setSecurityManager nil)))))
 
-(defmacro with-security [& body]
-  `(do
-     (System/setProperty "java.security.policy"
-                        (-> "eval_soup/java.policy" io/resource .toString))
-     (System/setSecurityManager
-       (proxy [SecurityManager] []
-         (checkExit [status#]
-           (throw (SecurityException. "Exit not allowed.")))))
-     (try ~@body
-       (finally (System/setSecurityManager nil)))))
+(defmacro with-security
+  "Convenience macro that wraps the body with wrap-security
+  and then immediately executes it."
+  [& body]
+  `(apply (wrap-security (fn [] ~@body)) []))
 
-(defn eval-form-safely [form nspace]
-  (with-security
-    (thunk-timeout
-      (fn []
-        (binding [*ns* nspace
-                  *out* (StringWriter.)]
-          (refer-clojure)
-          [(eval form)
-           (if (and (coll? form) (= 'ns (first form)))
-             (-> form second create-ns)
-             *ns*)]))
-      timeout)))
+(defn wrap-timeout
+  "Returns a function that wraps the given function in a timeout checker.
+  The timeout is specified in milliseconds. If the timeout is reached,
+  an exceptino will be thrown."
+  [thunk timeout]
+  (fn []
+    (thunk-timeout thunk timeout)))
 
-(defn eval-form [form-str nspace]
-  (binding [*read-eval* false]
-    (try
-      (eval-form-safely (read-string form-str) nspace)
-      (catch Exception e [e nspace]))))
+(defn ^:private eval-form [form nspace {:keys [timeout
+                                               disable-timeout?
+                                               disable-security?]}]
+  (try
+    (cond-> (fn []
+              (binding [*ns* nspace
+                        *out* (StringWriter.)]
+                (refer-clojure)
+                [(eval form)
+                 (if (and (coll? form) (= 'ns (first form)))
+                   (-> form second create-ns)
+                   *ns*)]))
+            (not disable-timeout?) (wrap-timeout timeout)
+            (not disable-security?) (wrap-security)
+            true (apply []))
+    (catch Exception e [e nspace])))
 
-(defn code->results [forms]
-  (loop [forms forms
-         results []
-         nspace (create-ns 'clj.user)]
-    (if-let [form (first forms)]
-      (let [[result current-ns] (eval-form form nspace)]
-        (recur (rest forms) (conj results result) current-ns))
-      results)))
+(defn ^:private str->form [s]
+  (if (string? s)
+    (binding [*read-eval* false]
+      (read-string s))
+    s))
+
+(defn code->results
+  "Returns a vector of the evaluated result of each of the given forms.
+  If any of the forms are strings, it will read them first."
+  ([forms]
+   (code->results forms {}))
+  ([forms {:keys [timeout
+                  disable-timeout?
+                  disable-security?]
+           :or {timeout 4000
+                disable-timeout? false
+                disable-security? false}
+           :as opts}]
+   (let [opts {:timeout timeout
+               :disable-timeout? disable-timeout?
+               :disable-security? disable-security?}
+         forms (mapv str->form forms)]
+     (loop [forms forms
+            results []
+            nspace (create-ns 'clj.user)]
+       (if-let [form (first forms)]
+         (let [[result current-ns] (eval-form form nspace opts)]
+           (recur (rest forms) (conj results result) current-ns))
+         results)))))
 

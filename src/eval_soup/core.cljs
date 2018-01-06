@@ -7,7 +7,7 @@
   (:require-macros [cljs.core.async.macros :refer [go]])
   (:import goog.net.XhrIo))
 
-(defn fix-goog-path [path]
+(defn ^:private fix-goog-path [path]
   ; goog/string -> goog/string/string
   ; goog/string/StringBuffer -> goog/string/stringbuffer
   (let [parts (str/split path #"/")
@@ -19,7 +19,7 @@
                       [(str/lower-case last-part)]))]
     (str/join "/" new-parts)))
 
-(defn custom-load!
+(defn ^:private custom-load!
   ([opts cb]
    (if (re-matches #"^goog/.*" (:path opts))
      (custom-load!
@@ -46,7 +46,7 @@
          (custom-load! opts (rest extensions) cb)))
      (cb {:lang :clj :source ""}))))
 
-(defn eval-forms [forms cb *state *current-ns custom-load]
+(defn ^:private eval-forms [forms cb *state *current-ns custom-load]
   (let [opts {:eval js-eval
               :load custom-load
               :context :expr
@@ -70,67 +70,86 @@
         (cb (mapv #(or (:error %) (:value %))
                   @*results)))))
 
-(defn str->form [ns-sym s]
-  (try
-    (binding [*ns* (create-ns ns-sym)]
-      (read-string s))
-    (catch js/Error _)))
+(defn ^:private str->form [ns-sym s]
+  (if (string? s)
+    (try
+      (binding [*ns* (create-ns ns-sym)]
+        (read-string s))
+      (catch js/Error _))
+    s))
 
-(defn wrap-macroexpand [form]
+(defn ^:private wrap-macroexpand [form]
   (if (coll? form)
     (list 'macroexpand (list 'quote form))
     form))
 
-(defn add-timeout-reset [form]
+(defn ^:private add-timeout-reset [form]
   (list 'do '(cljs.user/ps-reset-timeout!) form))
 
-(defn add-timeout-checks [form]
+(defn ^:private add-timeout-checks [timeout form]
   (if (and (seq? form) (= 'quote (first form)))
     form
-    (let [form (walk add-timeout-checks identity form)]
+    (let [form (walk (partial add-timeout-checks timeout) identity form)]
       (if (and (seq? form) (= 'recur (first form)))
-        (list 'do '(cljs.user/ps-check-for-timeout!) form)
+        (list 'do (list 'cljs.user/ps-check-for-timeout! timeout) form)
         form))))
 
-(defn add-timeouts-if-necessary [forms expanded-forms]
+(defn ^:private add-timeouts-if-necessary [timeout forms expanded-forms]
   (for [i (range (count forms))
         :let [expanded-form (get expanded-forms i)]]
     (if (and (coll? expanded-form)
              (contains? (set (flatten expanded-form)) 'recur))
-      (add-timeout-reset (add-timeout-checks expanded-form))
+      (add-timeout-reset (add-timeout-checks timeout expanded-form))
       (get forms i))))
 
-(defonce *state (empty-state))
+(defonce ^:private *cljs-state (empty-state))
 
 (defn code->results
+  "Evaluates each form, providing the results in a callback.
+  If any of the forms are strings, it will read them first."
   ([forms cb]
    (code->results forms cb {}))
-  ([forms cb {:keys [custom-load *current-ns]
-              :or {custom-load custom-load!
-                   *current-ns (atom 'cljs.user)}
+  ([forms cb {:keys [*current-ns
+                     *state
+                     custom-load
+                     timeout
+                     disable-timeout?]
+              :or {*current-ns (atom 'cljs.user)
+                   *state *cljs-state
+                   custom-load custom-load!
+                   timeout 4000
+                   disable-timeout? false}
               :as opts}]
    (let [forms (mapv (partial str->form @*current-ns) forms)
-         eval-cb (fn [results]
-                   (cb results))
-         read-cb (fn [results]
-                   (eval-forms (add-timeouts-if-necessary forms results)
-                     eval-cb
+         init-forms (vec
+                      (concat
+                        ['(ns cljs.user)]
+                        (when-not disable-timeout?
+                          ['(def ps-last-time (atom 0))
+                           '(defn ps-reset-timeout! []
+                              (reset! ps-last-time (.getTime (js/Date.))))
+                           '(defn ps-check-for-timeout! [timeout]
+                              (when (> (- (.getTime (js/Date.)) @ps-last-time) timeout)
+                                (throw (js/Error. "Execution timed out."))))])
+                        ['(set! *print-err-fn* (fn [_]))
+                         (list 'ns @*current-ns)]))
+         timeout-cb (fn [results]
+                      (eval-forms
+                        (add-timeouts-if-necessary timeout forms results)
+                        cb
+                        *state
+                        *current-ns
+                        custom-load))
+         init-cb (fn [results]
+                   (eval-forms
+                     (if disable-timeout?
+                       forms
+                       (map wrap-macroexpand forms))
+                     (if disable-timeout?
+                       cb
+                       timeout-cb)
                      *state
                      *current-ns
-                     custom-load))
-         init-cb (fn [results]
-                   (eval-forms (map wrap-macroexpand forms) read-cb *state *current-ns custom-load))]
-     (eval-forms ['(ns cljs.user)
-                  '(def ps-last-time (atom 0))
-                  '(defn ps-reset-timeout! []
-                     (reset! ps-last-time (.getTime (js/Date.))))
-                  '(defn ps-check-for-timeout! []
-                     (when (> (- (.getTime (js/Date.)) @ps-last-time) 4000)
-                       (throw (js/Error. "Execution timed out."))))
-                  '(set! *print-err-fn* (fn [_]))
-                  (list 'ns @*current-ns)]
-       init-cb
-       *state
-       *current-ns
-       custom-load))))
+                     custom-load))]
+     (eval-forms init-forms init-cb *state *current-ns custom-load))))
 
