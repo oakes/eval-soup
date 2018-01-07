@@ -2,11 +2,7 @@
 
 ## Introduction
 
-A nice eval wrapper for Clojure and ClojureScript. It even protects you from infinite loops!
-
-## Documentation
-
-[See the dynadocs.](https://oakes.github.io/eval-soup/clj/eval-soup.core.html)
+A nice eval wrapper for Clojure and ClojureScript. See [the dynadocs](https://oakes.github.io/eval-soup/clj/eval-soup.core.html) for documentation and examples.
 
 ## Usage
 
