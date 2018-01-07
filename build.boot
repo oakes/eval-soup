@@ -2,7 +2,7 @@
   :resource-paths #{"src" "resources"}
   :dependencies '[[adzerk/boot-cljs "2.1.4" :scope "test"]
                   [adzerk/boot-reload "0.5.2" :scope "test"]
-                  [dynadoc "1.4.0" :scope "test"]
+                  [dynadoc "1.4.0" :scope "test" :exclusions [eval-soup]]
                   [seancorfield/boot-tools-deps "0.1.4" :scope "test"]]
   :repositories (conj (get-env :repositories)
                   ["clojars" {:url "https://clojars.org/repo/"
@@ -37,7 +37,7 @@
   push {:repo "clojars"})
 
 (deftask run-docs []
-  (set-env! :resource-paths #{"dev-resources" "resources"})
+  (set-env! :resource-paths #{"src" "resources" "dev-resources"})
   (comp
     (deps :aliases [:cljs])
     (watch)

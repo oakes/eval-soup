@@ -81,16 +81,16 @@
          results)))))
 
 (defexamples code->results
-  ["Define a var and then use it."
+  ["You can reference vars you previously made."
    (code->results ['(def n 4) '(conj [1 2 3] n)])]
-  ["You can use strings too."
+  ["You can pass the code as strings too."
    (code->results ["(def n 4)" "(conj [1 2 3] n)"])]
-  ["Timeout after two seconds.
+  ["If your code exceeds the timeout, you'll see an exception.
    
    You can turn off timeout protection by passing `:disable-timeout? true`
    in the options map."
    (code->results ['(while true)] {:timeout 1000})]
-  ["Don't allow the system to exit.
+  ["If your code tries to exit, you'll see an exception.
    
    You can turn off exit protection by passing `:disable-security? true`
    in the options map."

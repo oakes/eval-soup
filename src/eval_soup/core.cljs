@@ -47,8 +47,6 @@
          (custom-load! opts (rest extensions) cb)))
      (cb {:lang :clj :source ""}))))
 
-(def chan? (partial instance? cljs.core.async.impl.channels.ManyToManyChannel))
-
 (defn ^:private str->form [ns-sym s]
   (try
     (binding [*ns* (create-ns ns-sym)]
@@ -80,7 +78,7 @@
             (catch js/Error e (put! channel {:error e})))
           (swap! *forms rest)
           (let [{:keys [value] :as res} (<! channel)
-                res (if (chan? value)
+                res (if (instance? cljs.core.async.impl.channels.ManyToManyChannel value)
                       {:value (<! value)}
                       res)]
             (swap! *results conj res)))
@@ -162,13 +160,13 @@
      (eval-forms init-forms init-cb *state *current-ns custom-load))))
 
 (defexamples code->results
-  [{:doc "Define a var and then use it."
+  [{:doc "You can reference vars you previously made."
     :with-callback callback}
    (code->results ['(def n 4) '(conj [1 2 3] n)] callback)]
-  [{:doc "You can use strings too."
+  [{:doc "You can pass the code as strings too."
     :with-callback callback}
    (code->results ["(def n 4)" "(conj [1 2 3] n)"] callback)]
-  [{:doc "Timeout after two seconds.
+  [{:doc "If your code exceeds the timeout, you'll see an exception.
    
    You can turn off timeout protection by passing `:disable-timeout? true`
    in the options map."
