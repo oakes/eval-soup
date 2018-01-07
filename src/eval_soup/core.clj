@@ -1,6 +1,7 @@
 (ns eval-soup.core
   (:require [clojure.java.io :as io]
-            [eval-soup.clojail :refer [thunk-timeout]])
+            [eval-soup.clojail :refer [thunk-timeout]]
+            [dynadoc.example :refer [defexamples]])
   (:import [java.io File StringWriter]))
 
 (defn wrap-security
@@ -78,4 +79,20 @@
          (let [[result current-ns] (eval-form form nspace opts)]
            (recur (rest forms) (conj results result) current-ns))
          results)))))
+
+(defexamples code->results
+  ["Define a var and then use it."
+   (code->results ['(def n 4) '(conj [1 2 3] n)])]
+  ["You can use strings too."
+   (code->results ["(def n 4)" "(conj [1 2 3] n)"])]
+  ["Timeout after two seconds.
+   
+   You can turn off timeout protection by passing `:disable-timeout? true`
+   in the options map."
+   (code->results ['(while true)] {:timeout 1000})]
+  ["Don't allow the system to exit.
+   
+   You can turn off exit protection by passing `:disable-security? true`
+   in the options map."
+   (code->results ['(System/exit 0)])])
 

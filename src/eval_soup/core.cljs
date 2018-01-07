@@ -4,7 +4,8 @@
             [cljs.js :refer [empty-state eval js-eval]]
             [cljs.tools.reader :refer [read-string]]
             [clojure.walk :refer [walk]])
-  (:require-macros [cljs.core.async.macros :refer [go]])
+  (:require-macros [cljs.core.async.macros :refer [go]]
+                   [dynadoc.example :refer [defexamples]])
   (:import goog.net.XhrIo))
 
 (defn ^:private fix-goog-path [path]
@@ -159,4 +160,18 @@
                      *current-ns
                      custom-load))]
      (eval-forms init-forms init-cb *state *current-ns custom-load))))
+
+(defexamples code->results
+  [{:doc "Define a var and then use it."
+    :with-callback callback}
+   (code->results ['(def n 4) '(conj [1 2 3] n)] callback)]
+  [{:doc "You can use strings too."
+    :with-callback callback}
+   (code->results ["(def n 4)" "(conj [1 2 3] n)"] callback)]
+  [{:doc "Timeout after two seconds.
+   
+   You can turn off timeout protection by passing `:disable-timeout? true`
+   in the options map."
+    :with-callback callback}
+   (code->results ['(while true)] callback {:timeout 1000})])
 
