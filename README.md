@@ -2,7 +2,7 @@
 
 ## Introduction
 
-A nice eval wrapper for Clojure and ClojureScript. See [the dynadocs](https://oakes.github.io/eval-soup/clj/eval-soup.core.html) for documentation and examples.
+A nice eval wrapper for Clojure and ClojureScript. See [the dynadocs](https://oakes.github.io/eval-soup/cljs/eval-soup.core.html) for documentation and examples.
 
 ## Usage
 
