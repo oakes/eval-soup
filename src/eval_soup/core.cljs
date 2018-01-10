@@ -65,9 +65,6 @@
           (try
             (let [current-ns @*current-ns
                   form (first @*forms)
-                  form (if (string? form)
-                         (str->form current-ns form)
-                         form)
                   opts (assoc opts :ns current-ns)]
               (when (list? form)
                 (when (= 'ns (first form))
@@ -127,7 +124,8 @@
                    timeout 4000
                    disable-timeout? false}
               :as opts}]
-   (let [init-forms (vec
+   (let [forms (mapv #(if (string? %) (str->form @*current-ns %) %) forms)
+         init-forms (vec
                       (concat
                         ['(ns cljs.user)]
                         (when-not disable-timeout?
