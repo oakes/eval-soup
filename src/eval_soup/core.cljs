@@ -50,7 +50,7 @@
 (defn ^:private str->form [ns-sym s]
   (try
     (binding [*ns* (create-ns ns-sym)]
-      (read-string s))
+      (read-string {:read-cond :allow} s))
     (catch js/Error _)))
 
 (defn ^:private eval-forms [forms cb *state *current-ns custom-load]
