@@ -35,7 +35,7 @@
 
 (defn ^:private str->form [nspace s]
   (binding [*read-eval* false]
-    (read-string s)))
+    (read-string {:read-cond :allow} s)))
 
 (defn ^:private eval-form [form nspace {:keys [timeout
                                                disable-timeout?
