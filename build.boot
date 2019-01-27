@@ -38,7 +38,7 @@
 
 (task-options!
   pom {:project 'eval-soup
-       :version "1.4.4-SNAPSHOT"
+       :version "1.5.0"
        :description "A nice eval wrapper for Clojure and ClojureScript"
        :url "https://github.com/oakes/eval-soup"
        :license {"Public Domain" "http://unlicense.org/UNLICENSE"}}
