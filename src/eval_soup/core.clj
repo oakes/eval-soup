@@ -1,7 +1,6 @@
 (ns eval-soup.core
   (:require [clojure.java.io :as io]
-            [eval-soup.clojail :refer [thunk-timeout]]
-            [dynadoc.example :refer [defexamples]])
+            [eval-soup.clojail :refer [thunk-timeout]])
   (:import [java.io File StringWriter]))
 
 (defn wrap-security
@@ -79,20 +78,4 @@
          (let [[result current-ns] (eval-form form nspace opts)]
            (recur (rest forms) (conj results result) current-ns))
          results)))))
-
-(defexamples code->results
-  ["You can reference vars you previously made."
-   (code->results ['(def n 4) '(conj [1 2 3] n)])]
-  ["You can pass the code as strings too."
-   (code->results ["(def n 4)" "(conj [1 2 3] n)"])]
-  ["If your code exceeds the timeout, you'll see an exception.
-   
-   You can turn off timeout protection by passing `:disable-timeout? true`
-   in the options map."
-   (code->results ['(while true)] {:timeout 1000})]
-  ["If your code tries to exit, you'll see an exception.
-   
-   You can turn off exit protection by passing `:disable-security? true`
-   in the options map."
-   (code->results ['(System/exit 0)])])
 

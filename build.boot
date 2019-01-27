@@ -32,7 +32,9 @@
 (require
   '[dynadoc.boot :refer [dynadoc]]
   '[adzerk.boot-cljs :refer [cljs]]
-  '[adzerk.boot-reload :refer [reload]])
+  '[adzerk.boot-reload :refer [reload]]
+  '[eval-soup.core]
+  '[eval-soup.examples])
 
 (task-options!
   pom {:project 'eval-soup
@@ -50,7 +52,7 @@
     (watch)
     (reload :asset-path "dynadoc-extend")
     (cljs
-      :optimizations :none ; replace :none with :simple to enable exporting
+      :optimizations :simple
       :compiler-options {:asset-path "/main.out"})
     (dynadoc :port 5000)))
 
