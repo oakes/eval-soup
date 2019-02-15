@@ -1,5 +1,8 @@
 {:paths ["src" "resources"]
- :deps {org.clojure/clojure {:mvn/version "1.10.0" :scope "provided"}
-        org.clojure/core.async {:mvn/version "0.4.490"}
+ :deps {org.clojure/core.async {:mvn/version "0.4.490"}
         defexample {:mvn/version "1.7.0"}}
- :aliases {:cljs {:extra-deps {org.clojure/clojurescript {:mvn/version "1.10.439"}}}}}
+ :aliases {:dev {:extra-deps {org.clojure/clojurescript {:mvn/version "1.10.439"}
+                              leiningen {:mvn/version "2.9.0"}
+                              lein-tools-deps {:mvn/version "0.4.3"
+                                               :exclusions [com.google.inject/guice$no_aop]}
+                              javax.xml.bind/jaxb-api {:mvn/version "2.3.0"}}}}}
